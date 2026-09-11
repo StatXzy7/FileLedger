@@ -51,12 +51,25 @@ def _print_changes(changes, output_format: str) -> None:
         sys.stdout.write(changes.to_text())
 
 
+def _manifest_self_exclude(root: Path, manifest: Path) -> list[str]:
+    root_abs = root.absolute()
+    manifest_abs = manifest.absolute()
+    try:
+        relative = manifest_abs.relative_to(root_abs)
+    except ValueError:
+        return []
+    if not relative.parts:
+        return []
+    return [relative.as_posix()]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
         if args.command == "snapshot":
             excludes = [normalize_exclude(value) for value in args.exclude]
+            excludes.extend(_manifest_self_exclude(args.root, args.manifest))
             manifest = scan_directory(args.root, excludes)
             write_manifest(manifest, args.manifest)
             _print_json({"files": len(manifest.files), "manifest": str(args.manifest)})
@@ -71,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "verify":
             excludes = [normalize_exclude(value) for value in args.exclude]
+            excludes.extend(_manifest_self_exclude(args.root, args.manifest))
             expected = load_manifest(args.manifest)
             actual = scan_directory(args.root, excludes)
             changes = compare_manifests(expected, actual)

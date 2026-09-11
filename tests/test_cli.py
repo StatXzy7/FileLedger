@@ -117,3 +117,17 @@ def test_verify_text_clean_exit_code(tmp_path: Path, capsys) -> None:
     capsys.readouterr()
     assert main(["verify", str(root), str(manifest), "--format", "text"]) == EXIT_OK
     assert "unchanged (1):\n  x.txt\n" in capsys.readouterr().out
+
+
+def test_manifest_inside_root_is_ignored_for_snapshot_and_verify(tmp_path: Path, capsys) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+    manifest = root / "ledger.json"
+
+    assert main(["snapshot", str(root), str(manifest)]) == EXIT_OK
+    capsys.readouterr()
+    assert main(["verify", str(root), str(manifest), "--format", "text"]) == EXIT_OK
+    output = capsys.readouterr().out
+    assert "added (0):\n" in output
+    assert "unchanged (1):\n  a.txt\n" in output

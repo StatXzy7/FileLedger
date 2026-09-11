@@ -103,11 +103,10 @@ def scan_directory(root: Path, excludes: Iterable[str] = ()) -> Manifest:
             for entry in entries:
                 path = Path(entry.path)
                 relative = _portable_relative(path, root)
-                if _is_excluded(relative, normalized_excludes):
-                    continue
-
                 entry_stat = entry.stat(follow_symlinks=False)
                 _reject_special(path, entry_stat)
+                if _is_excluded(relative, normalized_excludes):
+                    continue
                 if stat.S_ISDIR(entry_stat.st_mode):
                     walk(path)
                 elif stat.S_ISREG(entry_stat.st_mode):

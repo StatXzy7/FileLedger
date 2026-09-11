@@ -178,3 +178,24 @@ def test_windows_junction_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ManifestError, match="special filesystem entry"):
         scan_directory(root)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction test")
+def test_excluded_windows_junction_is_still_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    target = tmp_path / "target"
+    root.mkdir()
+    target.mkdir()
+    junction = root / "junction"
+
+    completed = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(junction), str(target)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        pytest.skip(f"junction creation unavailable: {completed.stderr or completed.stdout}")
+
+    with pytest.raises(ManifestError, match="special filesystem entry"):
+        scan_directory(root, ["junction"])
